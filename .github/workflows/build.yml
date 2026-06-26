@@ -1,4 +1,4 @@
-name: Build Android APK
+Name: Build Android APK
 
 on:
   push:
@@ -26,23 +26,36 @@ jobs:
     - name: Create Package & App Directories
       run: |
         mkdir -p www
-        cp index.html www/
+        # Копируем index.html, только если он есть в корне, чтобы избежать ошибок
+        if [ -f index.html ]; then cp index.html www/; fi
         echo '{"name": "lookschad", "version": "1.0.0"}' > package.json
 
     - name: Install Dependencies
       run: |
         npm install @capacitor/core @capacitor/cli @capacitor/android
 
-    - name: Initialize Capacitor and Build APK
+    - name: Initialize or Update Capacitor
       run: |
-        npx cap init LooksChad com.lookschad.app --web-dir=www
-        npx cap add android
+        # Инициализируем конфиг, если его ещё нет
+        if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
+          npx cap init LooksChad com.lookschad.app --web-dir=www
+        fi
+        
+        # Добавляем платформу Android, только если папки android ещё нет в репозитории
+        if [ ! -d "android" ]; then
+          npx cap add android
+        fi
+
+    - name: Sync and Build APK
+      run: |
         npx cap sync android
-        cd android && ./gradlew assembleDebug
+        cd android
+        chmod +x gradlew
+        ./gradlew assembleDebug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: LooksChad-APK
         path: android/app/build/outputs/apk/debug/app-debug.apk
-        
+       
