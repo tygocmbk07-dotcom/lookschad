@@ -38,7 +38,6 @@ jobs:
           if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
             npx cap init LooksChad com.lookschad.app --web-dir=www
           fi
-          # Eski android papkasini o'chirib, tozasini yaratish - dublikat xatosini yo'qotadi
           rm -rf android
           npx cap add android
 
@@ -46,10 +45,11 @@ jobs:
         run: |
           npx cap sync android
           cd android
+          # Eng muhim qism: build.gradle faylining eng oxiriga Kotlin versiyasini 
+          # majburan 1.8.22 ga tenglovchi kodni qo'shamiz
+          echo "configurations.all { resolutionStrategy { force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22' } }" >> app/build.gradle
           chmod +x gradlew
-          # Gradle keshini tozalash
           ./gradlew clean
-          # APK yaratish
           ./gradlew assembleDebug
 
       - name: Upload APK
