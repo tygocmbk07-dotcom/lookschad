@@ -26,7 +26,6 @@ jobs:
     - name: Create Package & App Directories
       run: |
         mkdir -p www
-        # Копируем index.html, только если он есть в корне, чтобы избежать ошибок
         if [ -f index.html ]; then cp index.html www/; fi
         echo '{"name": "lookschad", "version": "1.0.0"}' > package.json
 
@@ -36,12 +35,9 @@ jobs:
 
     - name: Initialize or Update Capacitor
       run: |
-        # Инициализируем конфиг, если его ещё нет
         if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
           npx cap init LooksChad com.lookschad.app --web-dir=www
         fi
-        
-        # Добавляем платформу Android, только если папки android ещё нет в репозитории
         if [ ! -d "android" ]; then
           npx cap add android
         fi
@@ -50,6 +46,11 @@ jobs:
       run: |
         npx cap sync android
         cd android
+        
+        # Исправляем дубликаты классов Kotlin
+        echo "android.useAndroidX=true" >> gradle.properties
+        echo "kotlin.version=1.8.22" >> gradle.properties
+        
         chmod +x gradlew
         ./gradlew assembleDebug
 
@@ -58,4 +59,4 @@ jobs:
       with:
         name: LooksChad-APK
         path: android/app/build/outputs/apk/debug/app-debug.apk
-       
+        
