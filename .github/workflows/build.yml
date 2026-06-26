@@ -7,53 +7,41 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '21'
+          java-version: '17'
 
-      - name: Create Package & App Directories
+      - name: Build Project
         run: |
           mkdir -p www
           if [ -f index.html ]; then cp index.html www/; fi
           echo '{"name": "lookschad", "version": "1.0.0"}' > package.json
-
-      - name: Install Dependencies
-        run: |
           npm install @capacitor/core @capacitor/cli @capacitor/android
-
-      - name: Initialize or Update Capacitor
-        run: |
-          if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
-            npx cap init LooksChad com.lookschad.app --web-dir=www
-          fi
+          npx cap init LooksChad com.lookschad.app --web-dir=www
           rm -rf android
           npx cap add android
-
-      - name: Sync and Build APK
-        run: |
           npx cap sync android
+          
+          # ENG MUHIM QISM: Gradle'ga qat'iy buyruq
           cd android
-          # Eng muhim qism: build.gradle faylining eng oxiriga Kotlin versiyasini 
-          # majburan 1.8.22 ga tenglovchi kodni qo'shamiz
-          echo "configurations.all { resolutionStrategy { force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22' } }" >> app/build.gradle
+          echo "configurations.all {
+              resolutionStrategy {
+                  force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
+                  force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
+                  force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
+              }
+          }" >> app/build.gradle
+          
           chmod +x gradlew
-          ./gradlew clean
-          ./gradlew assembleDebug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+          ./gradlew assembleDebug --stacktrace
+          
+      - uses: actions/upload-artifact@v4
         with:
           name: LooksChad-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
