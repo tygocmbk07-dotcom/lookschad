@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Looks Chad - Real Face Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background-color: #0a0c10; color: #fff; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        
+        nav { width: 100%; padding: 20px; background: #13161c; display: flex; justify-content: center; gap: 15px; border-bottom: 1px solid #2e8b57; position: sticky; top: 0; z-index: 100; }
+        nav button { background: transparent; color: #888; border: none; font-size: 15px; font-weight: 600; cursor: pointer; transition: 0.3s; padding: 8px 16px; border-radius: 20px;}
+        nav button:hover, nav button.active { color: #2e8b57; background: rgba(46, 139, 87, 0.1); }
+        
+        .container { max-width: 480px; width: 100%; padding: 20px; text-align: center; position: relative; }
+        .page-content { display: none; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h1 { font-size: 2.8rem; font-weight: 800; margin-bottom: 5px; letter-spacing: -1px; }
+        h1 span { color: #2e8b57; } 
+        .subtitle { color: #666; font-size: 14px; margin-bottom: 20px; }
+
+        /* Tugmalar */
+        .btn-group { display: flex; flex-direction: column; gap: 10px; align-items: center; width: 100%; max-width: 280px; margin: 0 auto;}
+        .btn-green { background-color: #2e8b57; color: white; padding: 14px 28px; border: none; border-radius: 30px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 15px rgba(46, 139, 87, 0.3); width: 100%;}
+        .btn-green:hover { transform: scale(1.02); }
+        .btn-outline { background: transparent; border: 2px solid #2e8b57; color: #2e8b57; padding: 12px 24px; border-radius: 30px; font-weight: 600; cursor: pointer; transition: 0.3s; width: 100%;}
+        .btn-outline:hover { background: #2e8b57; color: #fff; }
+
+        /* Kamera/Rasm maydoni */
+        .media-wrapper { width: 100%; max-width: 400px; height: 350px; margin: 15px auto; position: relative; border-radius: 20px; overflow: hidden; background: #000; border: 2px solid #1f242c; }
+        
+        #video { width: 100%; height: 100%; object-fit: cover; display: none; }
+        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
+        #uploadedImage { width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; top: 0; left: 0; z-index: 1; }
+        
+        .loader-text { color: #444; font-size: 14px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 5; display: none;}
+
+        /* 1% - 100% ANIMATSIYA */
+        #loading-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 12, 16, 0.95);
+            z-index: 50;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        #loading-percent {
+            font-family: 'Inter', sans-serif;
+            font-weight: 900;
+            font-size: 4.5rem;
+            color: #2e8b57;
+            letter-spacing: -3px;
+            text-shadow: 0 0 30px rgba(46, 139, 87, 0.3);
+            transition: 0.1s;
+        }
+        #loading-label {
+            margin-top: 10px;
+            color: #888;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Natijalar qutisi */
+        #score-box { margin-top: 20px; display: none; background: #13161c; padding: 20px; border-radius: 20px; border: 1px solid #222; animation: resultPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes resultPop { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        
+        .result-main-score { font-size: 40px; font-weight: 800; color: #2e8b57; margin: 10px 0; }
+        .result-sub { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #1f242c; font-size: 14px;}
+        .result-sub:last-child { border-bottom: none; }
+        .result-sub span:last-child { color: #2e8b57; font-weight: bold; }
+        .result-sub span:first-child { font-weight: 400; color: #ccc; }
+
+        /* GUIDES (RASMSIZ) & EXERCISES (RASMSIZ) */
+        .guide-card { background: #13161c; border-radius: 16px; padding: 15px 20px; margin-bottom: 15px; text-align: left; border: 1px solid #222; }
+        .guide-card h3 { color: #2e8b57; margin: 0 0 10px 0; font-size: 18px; }
+        .guide-card p { color: #aaa; font-size: 14px; line-height: 1.6; }
+
+        .exercise-section-title { color: #fff; font-size: 22px; margin: 30px 0 15px 0; border-bottom: 2px solid #2e8b57; padding-bottom: 10px; }
+
+        /* GLOSSARY */
+        .glossary-item { background: #13161c; border-radius: 12px; padding: 15px; margin-bottom: 10px; border-left: 4px solid #2e8b57; text-align: left;}
+        .glossary-item h4 { margin: 0 0 5px 0; color: #fff; }
+        .glossary-item p { margin: 0; color: #888; font-size: 14px; }
+
+        .footer { margin-top: 40px; color: #444; font-size: 11px; border-top: 1px solid #1a1d24; padding: 20px; width: 100%; text-align: center; }
+        
+        .hidden-input { display: none; }
+    </style>
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body>
+
+    <nav>
+        <button onclick="showPage('home')" class="active">Analyze</button>
+        <button onclick="showPage('guides')">Guides</button>
+        <button onclick="showPage('glossary')">Glossary</button>
+    </nav>
+
+    <div class="container">
+        <!-- ASOSIY SAHIFA -->
+        <div id="home" class="page-content" style="display: block;">
+            <h1>Looks <span>Chad</span></h1>
+            <p class="subtitle">Загрузите анфас, чтобы получить частный анализ лица.</p>
+            
+            <div class="media-wrapper" id="cameraWrapper">
+                <div class="loader-text" id="loaderText">Загрузка AI...</div>
+                
+                <video id="video" autoplay muted playsinline></video>
+                <img id="uploadedImage" src="" alt="Uploaded face">
+                <canvas id="overlay"></canvas>
+
+                <!-- 1% - 100% ANIMATSIYA -->
+                <div id="loading-overlay">
+                    <div id="loading-percent">0%</div>
+                    <div id="loading-label">Сканирование</div>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-green" id="scanBtn" onclick="startFinalAnalysis()">Начать сканирование</button>
+                <button class="btn-outline" onclick="document.getElementById('captureInput').click()">Сделать фото</button>
+                <button class="btn-outline" onclick="document.getElementById('galleryInput').click()">Выбрать из галереи</button>
+            </div>
+
+            <!-- NATIJALAR QUTISI (O'lchamlarga asoslangan baho) -->
+            <div id="score-box">
+                <h3 style="color: #555; font-weight: 400; margin-bottom: 15px;">Результат анализа</h3>
+                <div class="result-main-score">Оценка: <span id="faceScore">--</span>/10</div>
+                
+                <div class="result-sub"><span>Симметрия</span> <span id="resSym">--</span>%</div>
+                <div class="result-sub"><span>Golden Ratio (1.618)</span> <span id="resEye">--</span>%</div>
+                <div class="result-sub"><span>Соотношение Челюсть/Высота</span> <span id="resJaw">--</span>%</div>
+                <div class="result-sub"><span>Пропорции Носа</span> <span id="resNose">--</span>%</div>
+                <div class="result-sub"><span>Пропорции Бровей</span> <span id="resBrow">--</span>%</div>
+                
+                <div class="result-sub" style="border-bottom: 1px solid #333; margin-bottom: 5px;"><span>Сильная черта:</span> <span id="resFeature" style="color:#2e8b57;">...</span></div>
+                
+                <div class="result-sub"><span>Sub3 (Гармония челюсти)</span> <span id="resSub3">--</span></div>
+                <div class="result-sub"><span>Sub5 (Универсальность)</span> <span id="resSub5">--</span></div>
+                <div class="result-sub"><span>HTN (Гармония черт)</span> <span id="resHTN">--</span></div>
+                <div class="result-sub"><span>MNT (Маскулинность)</span> <span id="resMNT">--</span></div>
+                <div class="result-sub" style="border:none; color:#2e8b57; font-weight:bold;"><span>Chad (Статус)</span> <span id="resChad">False</span></div>
+            </div>
+        </div>
+
+        <!-- GUIDES -->
+        <div id="guides" class="page-content" style="text-align: left;">
+            <h2 style="color:#2e8b57; margin-bottom: 10px;">Руководства</h2>
+            <p style="color:#888; margin-bottom: 20px;">Советы по улучшению ваших черт лица и фотографий.</p>
+            <div class="guide-card"><h3>1. Правильное освещение</h3><p>Делайте фото при естественном рассеянном свете.</p></div>
+            <div class="guide-card"><h3>2. Идеальный ракурс</h3><p>Держите камеру на уровне глаз. Подбородок параллелен полу.</p></div>
+            <div class="guide-card"><h3>3. Нейтральное выражение</h3><p>Не улыбайтесь, не хмурьтесь для точных результатов.</p></div>
+            <div class="guide-card"><h3>4. Пейте больше воды (2 литра в день)</h3><p>Вода убирает отечность под глазами.</p></div>
+            <div class="guide-card"><h3>5. Ежедневный уход за кожей</h3><p>Чистая, увлажненная кожа выглядит привлекательнее.</p></div>
+            <div class="guide-card"><h3>6. Полноценный сон (7-8 часов)</h3><p>Темные круги снижают оценку.</p></div>
+            <div class="guide-card"><h3>7. Держите осанку</h3><p>Ровная спина подтягивает линию челюсти.</p></div>
+            <div class="guide-card"><h3>8. Правильное питание</h3><p>Меньше сахара, больше белка.</p></div>
+            <div class="guide-card"><h3>9. Упражнения для лица</h3><p>Лицевая гимнастика улучшает контуры.</p></div>
+            <div class="guide-card"><h3>10. Чистота объектива</h3><p>Протрите объектив камеры перед съемкой.</p></div>
+            
+            <h2 class="exercise-section-title">🏋️ Упражнения для лица</h2>
+            <div class="guide-card"><h3>1. Мьюинг (Mewing)</h3><p>Прижмите весь язык к нёбу. Подтягивает челюсть.</p></div>
+            <div class="guide-card"><h3>2. Jaws (Челюсть)</h3><p>Откройте рот, надавите на подбородок и медленно закрывайте.</p></div>
+            <div class="guide-card"><h3>3. Brow lift (Глаза)</h3><p>Поднимите брови вверх, не морща лоб. Держите 5 секунд.</p></div>
+            <div class="guide-card"><h3>4. Надувание щек</h3><p>Перекатывайте воздух из одной щеки в другую.</p></div>
+            <div class="guide-card"><h3>5. Упражнение для шеи</h3><p>Поверните голову, сопротивляясь пальцем у подбородка.</p></div>
+        </div>
+
+        <!-- GLOSSARY -->
+        <div id="glossary" class="page-content" style="text-align: left;">
+            <h2 style="color:#2e8b57; margin-bottom: 15px;">Глоссарий</h2>
+            <div class="glossary-item"><h4>Симметрия лица</h4><p>Насколько левая и правая половины лица соответствуют друг другу.</p></div>
+            <div class="glossary-item"><h4>Оценка /10</h4><p>Балл на основе симметрии и "Золотого сечения" (1.618).</p></div>
+            <div class="glossary-item"><h4>Золотое сечение (1.618)</h4><p>Соотношение длины лица к его ширине. Идеал - 1.618.</p></div>
+            <div class="glossary-item"><h4>Мьюинг (Mewing)</h4><p>Техника положения языка на нёбе для улучшения челюсти.</p></div>
+            <div class="glossary-item"><h4>Sub3</h4><p>Анализ пропорций нижней части лица (True/False).</p></div>
+            <div class="glossary-item"><h4>Chad (Статус)</h4><p>Итоговый вывод. Оценка > 7.5 дает статус "True Chad".</p></div>
+        </div>
+
+        <div class="footer">Looks Chad Analyzer v12.0 - Pure HTML/JS Math</div>
+    </div>
+
+    <input type="file" id="captureInput" class="hidden-input" accept="image/*" capture="user" onchange="handleFileUpload(event)">
+    <input type="file" id="galleryInput" class="hidden-input" accept="image/*" onchange="handleFileUpload(event)">
+
+    <script>
+        function showPage(pageId) {
+            document.querySelectorAll('.page-content').forEach(el => el.style.display = 'none');
+            document.getElementById(pageId).style.display = 'block';
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            if(pageId !== 'home') stopCameraSession();
+        }
+
+        let scanActive = false;
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('overlay');
+        const ctx = canvas.getContext('2d');
+        const uploadedImage = document.getElementById('uploadedImage');
+        let scanInterval;
+        let animationRunning = false;
+        let lastDetections = null;
+
+        // 1. ANIMATSIYA
+        function startLoadingAnimation(callback) {
+            if(animationRunning) return;
+            animationRunning = true;
+            
+            const overlay = document.getElementById('loading-overlay');
+            const percentText = document.getElementById('loading-percent');
+            
+            overlay.style.display = 'flex';
+            document.getElementById('score-box').style.display = 'none';
+            
+            let count = 0;
+            const speed = 30;
+            const interval = setInterval(() => {
+                count += Math.floor(Math.random() * 6) + 2;
+                if(count > 98) count = 98;
+                percentText.innerText = count + "%";
+                if(count >= 95) clearInterval(interval);
+            }, speed);
+
+            setTimeout(() => {
+                percentText.innerText = "100%";
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    animationRunning = false;
+                    if(callback) callback();
+                }, 400);
+            }, 2500);
+        }
+
+        function startFinalAnalysis() {
+            if(animationRunning) return;
+            // Agar rasm tanlangan bo'lsa
+            if(uploadedImage.style.display === 'block' && lastDetections) {
+                startLoadingAnimation(() => {
+                    // Avval chiziqlarni chizamiz, keyin natijalarni chiqaramiz
+                    drawRealLandmarks(uploadedImage, lastDetections);
+                    updateRealStats(lastDetections[0]);
+                    document.getElementById('score-box').style.display = 'block';
+                });
+            } 
+            // Agar kamera ishlayotgan bo'lsa
+            else if(scanActive && lastDetections) {
+                startLoadingAnimation(() => {
+                    drawRealLandmarks(video, lastDetections);
+                    updateRealStats(lastDetections[0]);
+                    document.getElementById('score-box').style.display = 'block';
+                });
+            } else {
+                startScanProcess();
+            }
+        }
+
+        // 2. CHIROYLI KO'K CHIZIQLARNI CHIZISH (2-rasmdagidek)
+        function drawRealLandmarks(sourceElement, detections) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const displaySize = { width: 400, height: 350 };
+            const resizedDetections = faceapi.resizeResults(detections, displaySize);
+            
+            // Qalin ramkani o'chirib, faqat ochiq ko'k chiziqlarni qoldiramiz
+            faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
+        }
+
+        // 3. KAMERA REJIMI
+        async function startScanProcess() {
+            if(scanActive || animationRunning) return;
+            
+            const loader = document.getElementById('loaderText');
+            loader.innerText = "Запрос разрешения...";
+            loader.style.display = 'block';
+            document.getElementById('scanBtn').innerText = "Загрузка...";
+            document.getElementById('scanBtn').disabled = true;
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                uploadedImage.style.display = 'none';
+                video.style.display = 'block';
+                video.srcObject = stream;
+                await video.play();
+                
+                const displaySize = { width: 400, height: 350 };
+                faceapi.matchDimensions(canvas, displaySize);
+                loader.style.display = 'none';
+                scanActive = true;
+                document.getElementById('scanBtn').innerText = "Обнаружение...";
+
+                scanInterval = setInterval(async () => {
+                    const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }))
+                        .withFaceLandmarks();
+
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    if (detections.length > 0) {
+                        lastDetections = detections;
+                        drawRealLandmarks(video, detections);
+
+                        document.getElementById('scanBtn').innerText = "Начать сканирование";
+                        document.getElementById('scanBtn').disabled = false;
+                    } else {
+                        lastDetections = null;
+                        document.getElementById('scanBtn').innerText = "Поднесите лицо";
+                        document.getElementById('scanBtn').disabled = true;
+                    }
+                }, 300);
+
+            } catch (err) {
+                alert("Ошибка камеры. Используйте галерею.");
+                resetUI();
+            }
+        }
+
+        // 4. RASM YUKLASH (Skaner qilmaydi, faqat rasmni qo'yadi)
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            stopCameraSession();
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                uploadedImage.src = e.target.result;
+                uploadedImage.style.display = 'block';
+                video.style.display = 'none';
+                document.getElementById('loaderText').style.display = 'none';
+                document.getElementById('score-box').style.display = 'none';
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Faqat rasm borligini tekshiramiz, natija va chiziqlarni chiqarmaymiz
+                const detections = await faceapi.detectAllFaces(uploadedImage, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+                if(detections.length > 0) {
+                    lastDetections = detections;
+                    document.getElementById('scanBtn').innerText = "Начать сканирование";
+                    document.getElementById('scanBtn').disabled = false;
+                } else {
+                    lastDetections = null;
+                    document.getElementById('loaderText').innerText = "Лицо не найдено";
+                    document.getElementById('loaderText').style.display = 'block';
+                    document.getElementById('scanBtn').disabled = true;
+                }
+            };
+            reader.readAsDataURL(file);
+            event.target.value = ''; 
+        }
+
+        function stopCameraSession() {
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+            video.style.display = 'none';
+            if(scanInterval) clearInterval(scanInterval);
+            scanActive = false;
+            resetUI();
+        }
+
+        function resetUI() {
+            document.getElementById('scanBtn').innerText = "Начать сканирование";
+            document.getElementById('scanBtn').disabled = false;
+            document.getElementById('loaderText').style.display = 'none';
+        }
+
+        // --- 1.1 dan 10.0 gacha HAQIQIY MATEMATIK HISOBLASH ---
+        function updateRealStats(faceData) {
+            const landmarks = faceData.landmarks.positions;
+            
+            // O'lchash uchun muhim nuqtalar
+            const eyeL = landmarks[36]; const eyeR = landmarks[45];
+            const nose = landmarks[30]; 
+            const jawL = landmarks[0]; const jawR = landmarks[16];
+            const chin = landmarks[8]; const forehead = landmarks[19];
+            const browL = landmarks[17]; const browR = landmarks[26];
+            const noseL = landmarks[31]; const noseR = landmarks[35];
+
+            // 1. HAQIQIY O'LCHAMLAR (Piksellarda)
+            const eyeWidth = Math.hypot(eyeR.x - eyeL.x, eyeR.y - eyeL.y);
+            const jawWidth = Math.hypot(jawR.x - jawL.x, jawR.y - jawL.y);
+            const faceHeight = Math.hypot(forehead.y - chin.y);
+            const noseWidth = Math.hypot(noseR.x - noseL.x, noseR.y - noseL.y);
+            const browWidth = Math.hypot(browR.x - browL.x, browR.y - browL.y);
+            
+            // 2. SIMNETRIYA (Chap va o'ng tomon farqi)
+            const leftDist = Math.abs(eyeL.x - nose.x);
+            const rightDist = Math.abs(eyeR.x - nose.x);
+            let symRaw = 100 - (Math.abs(leftDist - rightDist) / (jawWidth/2)) * 50;
+            let sym = Math.floor(Math.max(20, Math.min(99, symRaw)));
+
+            // 3. GOLDEN RATIO (1.618 ga yaqinlik) - REAL
+            let goldenRatio = faceHeight / jawWidth; 
+            let goldenScore = 100 - (Math.abs(goldenRatio - 1.618) * 60); 
+            if(goldenScore < 10) goldenScore = 10;
+            if(goldenScore > 100) goldenScore = 100;
+
+            // 4. REAL 10 BALLIK BAHO (1.1 ~ 10.0)
+            let overallScoreRaw = (sym * 0.35) + (goldenScore * 0.65);
+            let overallScore = (overallScoreRaw / 10).toFixed(1); 
+            
+            // Cheklov (1.1 dan past bo'lmaslik uchun)
+            if(parseFloat(overallScore) < 1.1) overallScore = "1.1";
+
+            // 5. Qo'shimcha ko'rsatkichlar
+            let noseScore = Math.min(100, Math.floor(70 + (eyeWidth / noseWidth) * 8));
+            let browScore = Math.min(100, Math.floor(65 + (browWidth / eyeWidth) * 15));
+
+            // 6. Sub qatorlar (Dinamik True/False)
+            let sub3Val = (jawWidth / faceHeight) * 100;
+            let sub3Bool = sub3Val > 35 && sub3Val < 45 ? "True" : "False";
+            let sub5Bool = overallScoreRaw > 65 ? "True" : "False";
+            let htnBool = (sym > 70 && goldenScore > 60) ? "True" : "False";
+            let mntBool = (sym > 60 && (jawWidth / faceHeight) > 0.36) ? "True" : "False";
+            let chadBool = overallScoreRaw >= 75 ? "True" : "False";
+
+            // Natijalarni UI ga chiqarish
+            document.getElementById('faceScore').innerText = overallScore;
+            document.getElementById('resSym').innerText = sym + "%";
+            document.getElementById('resEye').innerText = Math.floor(goldenScore) + "%";
+            document.getElementById('resJaw').innerText = Math.floor((jawWidth / faceHeight) * 100) + "%";
+            document.getElementById('resNose').innerText = noseScore + "%";
+            document.getElementById('resBrow').innerText = browScore + "%";
+
+            const features = ["Линия челюсти", "Глаза", "Нос", "Симметрия", "Губы"];
+            document.getElementById('resFeature').innerText = features[Math.floor(Math.random() * features.length)];
+            
+            document.getElementById('resSub3').innerText = sub3Bool;
+            document.getElementById('resSub5').innerText = sub5Bool;
+            document.getElementById('resHTN').innerText = htnBool;
+            document.getElementById('resMNT').innerText = mntBool;
+            document.getElementById('resChad').innerText = chadBool;
+        }
+
+        async function loadModels() {
+            const loader = document.getElementById('loaderText');
+            loader.innerText = "Загрузка AI модели...";
+            loader.style.display = 'block';
+            try {
+                await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/');
+                await faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/');
+                loader.style.display = 'none';
+            } catch (err) {
+                loader.innerText = "Ошибка загрузки AI (Интернет!)";
+                console.error(err);
+            }
+        }
+        window.addEventListener('load', loadModels);
+    </script>
+</body>
+</html>
